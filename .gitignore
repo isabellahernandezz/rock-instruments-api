@@ -1,4 +1,36 @@
+# Entorno virtual
+venv/
+ENV/
+env/
+
+# Archivos de Python compilados
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# Archivos de configuración de IDEs
+.vscode/
+*.code-workspace
+.idea/
+
+# Archivos de logs y bases de datos locales
+*.log
+*.sqlite3
+*.db
+
+# Archivos temporales de Flask
 instance/
-.env
+*.pid
+*.env
+
+# MacOS
+.DS_Store
+
+# Node.js (si en algún momento agregas frontend)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Archivos generados por Docker
+docker-compose.override.yml
