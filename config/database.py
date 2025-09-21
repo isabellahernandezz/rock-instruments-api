@@ -1,9 +1,8 @@
 import os
 import logging
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.exc import OperationalError
-from models.instrument_model import Base
 from dotenv import load_dotenv
 
 # Configura logging y carga variables del archivo .env
@@ -14,8 +13,10 @@ load_dotenv()
 MYSQL_URI = os.getenv('MYSQL_URI')
 SQLITE_URI = 'sqlite:///instruments_local.db'
 
+# Base para los modelos
+Base = declarative_base()
+
 # Función que retorna un engine de SQLAlchemy
-# Intenta usar MySQL si está disponible, si falla usa SQLite local
 def get_engine():
     if MYSQL_URI:
         try:
@@ -26,16 +27,12 @@ def get_engine():
             return engine
         except OperationalError:
             logging.warning('No se pudo conectar a MySQL. Usando SQLite local.')
-    engine = create_engine(SQLITE_URI, echo=True)
-    return engine
+    return create_engine(SQLITE_URI, echo=True)
 
-# Creamos engine y sesión para interactuar con la base de datos
+# Creamos engine y sesión
 engine = get_engine()
-Session = sessionmaker(bind=engine)
+SessionLocal = sessionmaker(bind=engine)
 
-# Crea las tablas definidas en Base si no existen
-Base.metadata.create_all(engine)
-
-# Función para obtener una sesión de base de datos lista para usar
+# Función para obtener una sesión de base de datos
 def get_db_session():
-    return Session()
+    return SessionLocal()

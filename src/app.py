@@ -1,75 +1,67 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for
-from flask_sqlalchemy import SQLAlchemy
+import logging
 from dotenv import load_dotenv
+from flask import Flask, jsonify
+from flask_jwt_extended import JWTManager
+from flasgger import Swagger
+from src.models.db import db
 
-# Cargar variables de entorno desde el archivo .env
+# ========== Configuración ==========
 load_dotenv()
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logger = logging.getLogger(__name__)
 
-# Crear la aplicación Flask
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')  # URL de la base de datos
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # Desactivar notificaciones de cambios
 
-# Inicializar SQLAlchemy con la app
-db = SQLAlchemy(app)
+# Swagger (documentación API)
+app.config["SWAGGER"] = {"title": "FlaskAPIExample", "uiversion": 3}
+Swagger(app)
 
-# ---------------- Modelo ----------------
-class Instrumento(db.Model):
-    id = db.Column(db.Integer, primary_key=True)  # ID único
-    nombre = db.Column(db.String(100), nullable=False)  # Nombre del instrumento
-    tipo = db.Column(db.String(50))  # Tipo (Cuerda, Percusión, Viento, etc.)
+# Base de datos
+db_url = os.getenv("MYSQL_URL") or os.getenv("DATABASE_URL") or os.getenv("MYSQL_URI")
+if db_url and db_url.startswith("mysql://"):
+    db_url = db_url.replace("mysql://", "mysql+pymysql://", 1)
+if not db_url:
+    db_url = "sqlite:///app.db"
+    logger.warning("No se definió MYSQL_URL. Usando SQLite local")
 
-# ---------------- Crear tabla y datos iniciales ----------------
-with app.app_context():
-    db.create_all()  # Crea la tabla si no existe
-    # Insertar datos de prueba si la tabla está vacía
-    if not Instrumento.query.first():
-        i1 = Instrumento(nombre="Guitarra", tipo="Cuerda")
-        i2 = Instrumento(nombre="Batería", tipo="Percusión")
-        i3 = Instrumento(nombre="Flauta", tipo="Viento")
-        db.session.add_all([i1, i2, i3])
-        db.session.commit()
+app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "clave_jwt_por_defecto")
 
-# ---------------- Rutas ----------------
+# Inicializar DB y JWT
+db.init_app(app)
+jwt = JWTManager(app)
 
-# Página principal: lista todos los instrumentos
+# ========== Blueprints ==========
+from src.controllers.user_controller import user_bp
+from src.controllers.instrument_controller import instrument_bp
+
+app.register_blueprint(user_bp)
+app.register_blueprint(instrument_bp)
+
+# ========== Rutas básicas ==========
+@app.route("/health")
+def health():
+    return {"status": "ok"}, 200
+
 @app.route("/")
 def index():
-    instrumentos = Instrumento.query.all()
-    return render_template("index.html", instruments=instrumentos)
+    return {
+        "api": "FlaskAPIExample",
+        "status": "OK",
+        "description": "API REST modular con Flask, JWT y SQLAlchemy",
+        "endpoints": {
+            "POST /users/register": "Registro de usuario",
+            "POST /users/login": "Login y JWT",
+            "GET /users/": "Lista de usuarios (JWT)",
+            "GET /api/instruments": "Lista de instrumentos (JWT)"
+        }
+    }, 200
 
-# Crear un nuevo instrumento
-@app.route("/create", methods=["GET", "POST"])
-def create_instrument():
-    if request.method == "POST":
-        nombre = request.form.get("nombre")
-        tipo = request.form.get("tipo")
-        nuevo_inst = Instrumento(nombre=nombre, tipo=tipo)
-        db.session.add(nuevo_inst)
-        db.session.commit()
-        return redirect(url_for("index"))
-    return render_template("create_instrument.html")
+# Crear tablas
+with app.app_context():
+    db.create_all()
 
-# Editar un instrumento existente
-@app.route("/edit/<int:instrument_id>", methods=["GET", "POST"])
-def edit_instrument(instrument_id):
-    instrumento = Instrumento.query.get_or_404(instrument_id)
-    if request.method == "POST":
-        instrumento.nombre = request.form.get("nombre")
-        instrumento.tipo = request.form.get("tipo")
-        db.session.commit()
-        return redirect(url_for("index"))
-    return render_template("edit_instrument.html", instrumento=instrumento)
-
-# Eliminar un instrumento
-@app.route("/delete/<int:instrument_id>")
-def delete_instrument(instrument_id):
-    instrumento = Instrumento.query.get_or_404(instrument_id)
-    db.session.delete(instrumento)
-    db.session.commit()
-    return redirect(url_for("index"))
-
-# Ejecutar la aplicación
 if __name__ == "__main__":
-    app.run(debug=True, port=int(os.getenv("PORT", 5001)))
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 6060)), debug=True)

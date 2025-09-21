@@ -1,12 +1,14 @@
+import os
 from flask import Flask
-from controllers.instrument_controller import instrument_bp  # Importa el Blueprint con todas las rutas de instrumentos
+from controllers.instrument_controller import instrument_bp
+from config.database import Base, engine
 
-# Crear la aplicación Flask
 app = Flask(__name__)
-
-# Registrar el Blueprint para que todas las rutas definidas en instrument_bp estén disponibles
 app.register_blueprint(instrument_bp)
 
-# Ejecutar la aplicación
+# Crear tablas si no existen
+with engine.begin() as conn:
+    Base.metadata.create_all(bind=conn)
+
 if __name__ == '__main__':
-    app.run(debug=True)  # Ejecuta el servidor en modo debug
+    app.run(debug=True, host="0.0.0.0", port=int(os.getenv("PORT", 5000)))
