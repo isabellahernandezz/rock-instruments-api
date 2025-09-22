@@ -1,4 +1,4 @@
-from src.repositories.instrument_repository import InstrumentRepository
+from repositories.instrument_repository import InstrumentRepository
 from sqlalchemy.orm import Session
 
 class InstrumentService:

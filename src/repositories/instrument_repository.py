@@ -1,4 +1,4 @@
-from src.models.instrument_model import Instrument
+from models.instrument_model import Instrument
 from sqlalchemy.orm import Session
 
 class InstrumentRepository:
