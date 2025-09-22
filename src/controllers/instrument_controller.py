@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for
-from services.instrument_service import InstrumentService
-from config.database import get_db_session
+from src.services.instrument_service import InstrumentService
+from src.config.database import get_db_session
+
 
 instrument_bp = Blueprint('instrument_bp', __name__)
 service = InstrumentService(get_db_session())
