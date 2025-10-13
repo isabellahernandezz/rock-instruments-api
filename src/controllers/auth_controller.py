@@ -1,17 +1,17 @@
 from flask import Blueprint, request, jsonify
-from ..app import db
-from ..models.user_model import User
+from src.app import db
+from src.models.user_model import User
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from datetime import timedelta
 
-auth_bp = Blueprint('auth', __name__)
+auth_bp = Blueprint('auth_bp', __name__)
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
     email = data.get('email')
     password = data.get('password')
-    role = data.get('role', 'user')
+    role = data.get('role', 'user')  # Por defecto 'user'
 
     if not email or not password:
         return jsonify({'msg': 'Email y contraseña son requeridos'}), 400
@@ -25,7 +25,7 @@ def register():
     db.session.add(new_user)
     db.session.commit()
 
-    return jsonify({'msg': 'Usuario registrado exitosamente'}), 201
+    return jsonify({'msg': f'Usuario {email} registrado exitosamente'}), 201
 
 @auth_bp.route('/login', methods=['POST'])
 def login():

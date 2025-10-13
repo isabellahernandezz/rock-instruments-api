@@ -1,7 +1,8 @@
-from app import db
+from src.app import db
 
 class Instrument(db.Model):
-    __tablename__ = 'instruments'
+    __tablename__ = "instruments"
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(120), nullable=False)
-    type = db.Column(db.String(120))
+    name = db.Column(db.String(100), nullable=False)
+    type = db.Column(db.String(50), nullable=False)
+    brand = db.Column(db.String(50), nullable=False)
