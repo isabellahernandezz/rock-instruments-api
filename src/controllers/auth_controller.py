@@ -1,17 +1,24 @@
 from flask import Blueprint, request, jsonify
 from src.app import db
 from src.models.user_model import User
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import (
+    create_access_token, create_refresh_token, jwt_required,
+    get_jwt_identity, get_jwt
+)
 from datetime import timedelta
 
-auth_bp = Blueprint('auth_bp', __name__)
+auth_bp = Blueprint('auth', __name__)
 
+# Lista negra de tokens (en memoria, para logout)
+jwt_blacklist = set()
+
+# --------- Registro de usuario ---------
 @auth_bp.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
     email = data.get('email')
     password = data.get('password')
-    role = data.get('role', 'user')  # Por defecto 'user'
+    role = data.get('role', 'user')
 
     if not email or not password:
         return jsonify({'msg': 'Email y contraseña son requeridos'}), 400
@@ -25,8 +32,9 @@ def register():
     db.session.add(new_user)
     db.session.commit()
 
-    return jsonify({'msg': f'Usuario {email} registrado exitosamente'}), 201
+    return jsonify({'msg': 'Usuario registrado exitosamente'}), 201
 
+# --------- Login ---------
 @auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -38,11 +46,15 @@ def login():
         return jsonify({'msg': 'Credenciales inválidas'}), 401
 
     access_token = create_access_token(identity=email, expires_delta=timedelta(hours=2))
+    refresh_token = create_refresh_token(identity=email)
+
     return jsonify({
         'access_token': access_token,
+        'refresh_token': refresh_token,
         'role': user.role
     }), 200
 
+# --------- Ver perfil ---------
 @auth_bp.route('/profile', methods=['GET'])
 @jwt_required()
 def profile():
@@ -52,3 +64,26 @@ def profile():
         'email': user.email,
         'role': user.role
     }), 200
+
+# --------- Refresh token ---------
+@auth_bp.route('/refresh', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh():
+    identity = get_jwt_identity()
+    new_access = create_access_token(identity=identity, expires_delta=timedelta(hours=2))
+    return jsonify({'access_token': new_access}), 200
+
+# --------- Logout ---------
+@auth_bp.route('/logout', methods=['POST'])
+@jwt_required(refresh=True)
+def logout():
+    jti = get_jwt()['jti']
+    jwt_blacklist.add(jti)
+    return jsonify({"msg": "Refresh token invalidado"}), 200
+
+# --------- Verificación de tokens en lista negra ---------
+from src.app import jwt as jwt_manager
+
+@jwt_manager.token_in_blocklist_loader
+def check_if_token_revoked(jwt_header, jwt_payload):
+    return jwt_payload['jti'] in jwt_blacklist

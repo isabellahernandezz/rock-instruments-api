@@ -103,6 +103,7 @@
         </select>
         <button onclick="registerUser()">Registrar</button>
         <button onclick="loginUser()">Login</button>
+        <button onclick="logoutUser()">Logout</button>
         <div id="tokenDiv" class="token-info"></div>
     </div>
 
@@ -134,7 +135,10 @@
 </div>
 
 <script>
-    let token = '';
+    let accessToken = '';
+    let refreshToken = '';
+
+    const API_URL = 'https://expert-eureka-pj7x545qv9542rjx4-5000.app.github.dev';
 
     // --------- Usuarios ---------
     function registerUser() {
@@ -142,7 +146,7 @@
         const password = document.getElementById('password').value;
         const role = document.getElementById('role').value;
 
-        fetch('https://expert-eureka-pj7x545qv9542rjx4-5000.app.github.dev/auth/register', {
+        fetch(`${API_URL}/auth/register`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({email, password, role})
@@ -156,7 +160,7 @@
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
 
-        fetch('https://expert-eureka-pj7x545qv9542rjx4-5000.app.github.dev/auth/login', {
+        fetch(`${API_URL}/auth/login`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({email, password})
@@ -164,8 +168,9 @@
         .then(res => res.json())
         .then(data => {
             if(data.access_token){
-                token = data.access_token;
-                document.getElementById('tokenDiv').innerText = "Token: " + token;
+                accessToken = data.access_token;
+                refreshToken = data.refresh_token;
+                document.getElementById('tokenDiv').innerText = "Access: " + accessToken + "\nRefresh: " + refreshToken;
                 alert("Login exitoso!");
             } else {
                 alert(JSON.stringify(data));
@@ -174,33 +179,72 @@
         .catch(err => console.error(err));
     }
 
-    function getProfile() {
-        fetch('https://expert-eureka-pj7x545qv9542rjx4-5000.app.github.dev/auth/profile', {
-            headers: {Authorization: `Bearer ${token}`}
+    function logoutUser() {
+        if(!refreshToken) { alert("No hay sesión iniciada"); return; }
+        fetch(`${API_URL}/auth/logout`, {
+            method: 'POST',
+            headers: {'Authorization': `Bearer ${refreshToken}`}
         })
         .then(res => res.json())
+        .then(data => {
+            accessToken = '';
+            refreshToken = '';
+            document.getElementById('tokenDiv').innerText = '';
+            alert(JSON.stringify(data));
+        })
+        .catch(err => console.error(err));
+    }
+
+    function refreshAccessToken(callback) {
+        if(!refreshToken) return;
+        fetch(`${API_URL}/auth/refresh`, {
+            method: 'POST',
+            headers: {'Authorization': `Bearer ${refreshToken}`}
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.access_token) {
+                accessToken = data.access_token;
+                document.getElementById('tokenDiv').innerText = "Access: " + accessToken + "\nRefresh: " + refreshToken;
+                if(callback) callback();
+            }
+        })
+        .catch(err => console.error(err));
+    }
+
+    function getProfile() {
+        if(!accessToken) { alert("Inicia sesión primero"); return; }
+        fetch(`${API_URL}/auth/profile`, { headers: {Authorization: `Bearer ${accessToken}`} })
+        .then(res => {
+            if(res.status === 401) return refreshAccessToken(() => getProfile());
+            return res.json();
+        })
         .then(data => document.getElementById('profileDiv').innerText = JSON.stringify(data))
         .catch(err => console.error(err));
     }
 
     // --------- Bandas ---------
     function createBand() {
+        if(!accessToken) { alert("Inicia sesión primero"); return; }
         const name = document.getElementById('bandName').value;
         const genre = document.getElementById('bandGenre').value;
         const country = document.getElementById('bandCountry').value;
 
-        fetch('https://expert-eureka-pj7x545qv9542rjx4-5000.app.github.dev/bands/', {
+        fetch(`${API_URL}/bands/`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}`},
             body: JSON.stringify({name, genre, country})
         })
-        .then(res => res.json())
+        .then(res => {
+            if(res.status === 401) return refreshAccessToken(() => createBand());
+            return res.json();
+        })
         .then(data => alert(JSON.stringify(data)))
         .catch(err => console.error(err));
     }
 
     function listBands() {
-        fetch('https://expert-eureka-pj7x545qv9542rjx4-5000.app.github.dev/bands/')
+        fetch(`${API_URL}/bands/`)
         .then(res => res.json())
         .then(data => {
             const container = document.getElementById('bandsList');
@@ -220,59 +264,28 @@
         .catch(err => console.error(err));
     }
 
-    function editBand(id, currentName, currentGenre, currentCountry) {
-        const name = prompt("Nuevo nombre:", currentName);
-        const genre = prompt("Nuevo género:", currentGenre);
-        const country = prompt("Nuevo país:", currentCountry);
-
-        if(name && genre && country){
-            fetch(`https://expert-eureka-pj7x545qv9542rjx4-5000.app.github.dev/bands/${id}`, {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
-                body: JSON.stringify({name, genre, country})
-            })
-            .then(res => res.json())
-            .then(data => {
-                alert(JSON.stringify(data));
-                listBands();
-            })
-            .catch(err => console.error(err));
-        }
-    }
-
-    function deleteBand(id) {
-        if(confirm("¿Seguro que quieres eliminar esta banda?")){
-            fetch(`https://expert-eureka-pj7x545qv9542rjx4-5000.app.github.dev/bands/${id}`, {
-                method: 'DELETE',
-                headers: {Authorization: `Bearer ${token}`}
-            })
-            .then(res => res.json())
-            .then(data => {
-                alert(JSON.stringify(data));
-                listBands();
-            })
-            .catch(err => console.error(err));
-        }
-    }
-
     // --------- Instrumentos ---------
     function createInstrument() {
+        if(!accessToken) { alert("Inicia sesión primero"); return; }
         const name = document.getElementById('instName').value;
         const type = document.getElementById('instType').value;
         const brand = document.getElementById('instBrand').value;
 
-        fetch('https://expert-eureka-pj7x545qv9542rjx4-5000.app.github.dev/instruments/', {
+        fetch(`${API_URL}/instruments/`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}`},
             body: JSON.stringify({name, type, brand})
         })
-        .then(res => res.json())
+        .then(res => {
+            if(res.status === 401) return refreshAccessToken(() => createInstrument());
+            return res.json();
+        })
         .then(data => alert(JSON.stringify(data)))
         .catch(err => console.error(err));
     }
 
     function listInstruments() {
-        fetch('https://expert-eureka-pj7x545qv9542rjx4-5000.app.github.dev/instruments/')
+        fetch(`${API_URL}/instruments/`)
         .then(res => res.json())
         .then(data => {
             const container = document.getElementById('instrumentsList');
@@ -283,50 +296,12 @@
                         <h3>${inst.name}</h3>
                         <p>🎸 ${inst.type}</p>
                         <p>🏷️ ${inst.brand}</p>
-                        <button onclick="editInstrument(${inst.id}, '${inst.name}', '${inst.type}', '${inst.brand}')">✏️ Editar</button>
-                        <button onclick="deleteInstrument(${inst.id})">🗑️ Eliminar</button>
                     </div>
                 `;
             });
         })
         .catch(err => console.error(err));
     }
-
-    function editInstrument(id, currentName, currentType, currentBrand) {
-        const name = prompt("Nuevo nombre:", currentName);
-        const type = prompt("Nuevo tipo:", currentType);
-        const brand = prompt("Nueva marca:", currentBrand);
-
-        if(name && type && brand){
-            fetch(`https://expert-eureka-pj7x545qv9542rjx4-5000.app.github.dev/instruments/${id}`, {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
-                body: JSON.stringify({name, type, brand})
-            })
-            .then(res => res.json())
-            .then(data => {
-                alert(JSON.stringify(data));
-                listInstruments();
-            })
-            .catch(err => console.error(err));
-        }
-    }
-
-    function deleteInstrument(id) {
-        if(confirm("¿Seguro que quieres eliminar este instrumento?")){
-            fetch(`https://expert-eureka-pj7x545qv9542rjx4-5000.app.github.dev/instruments/${id}`, {
-                method: 'DELETE',
-                headers: {Authorization: `Bearer ${token}`}
-            })
-            .then(res => res.json())
-            .then(data => {
-                alert(JSON.stringify(data));
-                listInstruments();
-            })
-            .catch(err => console.error(err));
-        }
-    }
-
 </script>
 
 </body>
