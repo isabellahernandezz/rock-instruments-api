@@ -1,7 +1,7 @@
 from app import db
 
-class Instrument(db.Model):
-    __tablename__ = 'instruments'
+class Band(db.Model):
+    __tablename__ = 'bands'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
-    type = db.Column(db.String(120))
+    genre = db.Column(db.String(120))
