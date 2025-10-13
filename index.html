@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎸 Rock Bands API - Interfaz 🎶</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to right, #fbc2eb, #a6c1ee);
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        header {
+            background-color: #fff;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0px 2px 5px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0px 4px 15px rgba(0,0,0,0.2);
+        }
+
+        input, select, button {
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            width: 100%;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 1rem;
+        }
+
+        button {
+            background-color: #ff7eb3;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background-color: #ff65a3;
+        }
+
+        .section {
+            margin-top: 2rem;
+        }
+
+        .flex {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .card {
+            background-color: #fff;
+            padding: 1rem;
+            border-radius: 12px;
+            box-shadow: 0px 2px 8px rgba(0,0,0,0.1);
+            flex: 1 1 250px;
+        }
+
+        .card h3 {
+            margin-top: 0;
+        }
+
+        .token-info {
+            word-break: break-all;
+            background: #eee;
+            padding: 0.5rem;
+            border-radius: 8px;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🎸 Rock Bands API - Interfaz 🎶</h1>
+</header>
+
+<div class="container">
+    <div class="section">
+        <h2>🔑 Login / Registro</h2>
+        <input type="email" id="email" placeholder="Email">
+        <input type="password" id="password" placeholder="Contraseña">
+        <select id="role">
+            <option value="user">Usuario</option>
+            <option value="admin">Admin</option>
+        </select>
+        <button onclick="registerUser()">Registrar</button>
+        <button onclick="loginUser()">Login</button>
+        <div id="tokenDiv" class="token-info"></div>
+    </div>
+
+    <div class="section">
+        <h2>🎤 Perfil</h2>
+        <button onclick="getProfile()">Ver Perfil</button>
+        <div id="profileDiv"></div>
+    </div>
+
+    <div class="section">
+        <h2>🎶 Bandas</h2>
+        <input type="text" id="bandName" placeholder="Nombre de la banda">
+        <input type="text" id="bandGenre" placeholder="Género">
+        <input type="text" id="bandCountry" placeholder="País">
+        <button onclick="createBand()">Crear Banda</button>
+        <button onclick="listBands()">Listar Bandas</button>
+        <div id="bandsList" class="flex"></div>
+    </div>
+
+    <div class="section">
+        <h2>🥁 Instrumentos</h2>
+        <input type="text" id="instName" placeholder="Nombre del instrumento">
+        <input type="text" id="instType" placeholder="Tipo">
+        <input type="text" id="instBrand" placeholder="Marca">
+        <button onclick="createInstrument()">Agregar Instrumento</button>
+        <button onclick="listInstruments()">Listar Instrumentos</button>
+        <div id="instrumentsList" class="flex"></div>
+    </div>
+</div>
+
+<script>
+    let token = '';
+
+    // --------- Usuarios ---------
+    function registerUser() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const role = document.getElementById('role').value;
+
+        fetch('https://expert-eureka-pj7x545qv9542rjx4-5000.app.github.dev/auth/register', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({email, password, role})
+        })
+        .then(res => res.json())
+        .then(data => alert(JSON.stringify(data)))
+        .catch(err => console.error(err));
+    }
+
+    function loginUser() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+
+        fetch('https://expert-eureka-pj7x545qv9542rjx4-5000.app.github.dev/auth/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({email, password})
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.access_token){
+                token = data.access_token;
+                document.getElementById('tokenDiv').innerText = "Token: " + token;
+                alert("Login exitoso!");
+            } else {
+                alert(JSON.stringify(data));
+            }
+        })
+        .catch(err => console.error(err));
+    }
+
+    function getProfile() {
+        fetch('https://expert-eureka-pj7x545qv9542rjx4-5000.app.github.dev/auth/profile', {
+            headers: {Authorization: `Bearer ${token}`}
+        })
+        .then(res => res.json())
+        .then(data => document.getElementById('profileDiv').innerText = JSON.stringify(data))
+        .catch(err => console.error(err));
+    }
+
+    // --------- Bandas ---------
+    function createBand() {
+        const name = document.getElementById('bandName').value;
+        const genre = document.getElementById('bandGenre').value;
+        const country = document.getElementById('bandCountry').value;
+
+        fetch('https://expert-eureka-pj7x545qv9542rjx4-5000.app.github.dev/bands/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+            body: JSON.stringify({name, genre, country})
+        })
+        .then(res => res.json())
+        .then(data => alert(JSON.stringify(data)))
+        .catch(err => console.error(err));
+    }
+
+    function listBands() {
+        fetch('https://expert-eureka-pj7x545qv9542rjx4-5000.app.github.dev/bands/')
+        .then(res => res.json())
+        .then(data => {
+            const container = document.getElementById('bandsList');
+            container.innerHTML = '';
+            data.forEach(band => {
+                container.innerHTML += `
+                    <div class="card">
+                        <h3>${band.name}</h3>
+                        <p>🎵 ${band.genre}</p>
+                        <p>🌎 ${band.country}</p>
+                        <button onclick="editBand(${band.id}, '${band.name}', '${band.genre}', '${band.country}')">✏️ Editar</button>
+                        <button onclick="deleteBand(${band.id})">🗑️ Eliminar</button>
+                    </div>
+                `;
+            });
+        })
+        .catch(err => console.error(err));
+    }
+
+    function editBand(id, currentName, currentGenre, currentCountry) {
+        const name = prompt("Nuevo nombre:", currentName);
+        const genre = prompt("Nuevo género:", currentGenre);
+        const country = prompt("Nuevo país:", currentCountry);
+
+        if(name && genre && country){
+            fetch(`https://expert-eureka-pj7x545qv9542rjx4-5000.app.github.dev/bands/${id}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+                body: JSON.stringify({name, genre, country})
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(JSON.stringify(data));
+                listBands();
+            })
+            .catch(err => console.error(err));
+        }
+    }
+
+    function deleteBand(id) {
+        if(confirm("¿Seguro que quieres eliminar esta banda?")){
+            fetch(`https://expert-eureka-pj7x545qv9542rjx4-5000.app.github.dev/bands/${id}`, {
+                method: 'DELETE',
+                headers: {Authorization: `Bearer ${token}`}
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(JSON.stringify(data));
+                listBands();
+            })
+            .catch(err => console.error(err));
+        }
+    }
+
+    // --------- Instrumentos ---------
+    function createInstrument() {
+        const name = document.getElementById('instName').value;
+        const type = document.getElementById('instType').value;
+        const brand = document.getElementById('instBrand').value;
+
+        fetch('https://expert-eureka-pj7x545qv9542rjx4-5000.app.github.dev/instruments/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+            body: JSON.stringify({name, type, brand})
+        })
+        .then(res => res.json())
+        .then(data => alert(JSON.stringify(data)))
+        .catch(err => console.error(err));
+    }
+
+    function listInstruments() {
+        fetch('https://expert-eureka-pj7x545qv9542rjx4-5000.app.github.dev/instruments/')
+        .then(res => res.json())
+        .then(data => {
+            const container = document.getElementById('instrumentsList');
+            container.innerHTML = '';
+            data.forEach(inst => {
+                container.innerHTML += `
+                    <div class="card">
+                        <h3>${inst.name}</h3>
+                        <p>🎸 ${inst.type}</p>
+                        <p>🏷️ ${inst.brand}</p>
+                        <button onclick="editInstrument(${inst.id}, '${inst.name}', '${inst.type}', '${inst.brand}')">✏️ Editar</button>
+                        <button onclick="deleteInstrument(${inst.id})">🗑️ Eliminar</button>
+                    </div>
+                `;
+            });
+        })
+        .catch(err => console.error(err));
+    }
+
+    function editInstrument(id, currentName, currentType, currentBrand) {
+        const name = prompt("Nuevo nombre:", currentName);
+        const type = prompt("Nuevo tipo:", currentType);
+        const brand = prompt("Nueva marca:", currentBrand);
+
+        if(name && type && brand){
+            fetch(`https://expert-eureka-pj7x545qv9542rjx4-5000.app.github.dev/instruments/${id}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+                body: JSON.stringify({name, type, brand})
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(JSON.stringify(data));
+                listInstruments();
+            })
+            .catch(err => console.error(err));
+        }
+    }
+
+    function deleteInstrument(id) {
+        if(confirm("¿Seguro que quieres eliminar este instrumento?")){
+            fetch(`https://expert-eureka-pj7x545qv9542rjx4-5000.app.github.dev/instruments/${id}`, {
+                method: 'DELETE',
+                headers: {Authorization: `Bearer ${token}`}
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(JSON.stringify(data));
+                listInstruments();
+            })
+            .catch(err => console.error(err));
+        }
+    }
+
+</script>
+
+</body>
+</html>
