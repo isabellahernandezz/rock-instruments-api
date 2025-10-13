@@ -17,17 +17,15 @@ def create_app():
     db.init_app(app)
     jwt.init_app(app)
 
-    # Blueprints
+    # Blueprints con import relativo
     from .controllers.auth_controller import auth_bp
     from .controllers.band_controller import band_bp
     from .controllers.instrument_controller import instrument_bp
-
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(band_bp, url_prefix="/bands")
     app.register_blueprint(instrument_bp, url_prefix="/instruments")
 
-    # Ruta raíz
     @app.route('/')
     def home():
         return {
@@ -35,7 +33,6 @@ def create_app():
             "status": "running"
         }
 
-    # Crear las tablas
     with app.app_context():
         db.create_all()
 
