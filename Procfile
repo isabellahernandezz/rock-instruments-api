@@ -1,1 +1,1 @@
-web: python src/main.py
+web: python3 -m src.main
