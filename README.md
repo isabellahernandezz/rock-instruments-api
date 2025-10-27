@@ -57,16 +57,6 @@ Se requiere un token JWT para acceder a rutas protegidas.
 
 Autenticarse vía /login con credenciales válidas.
 
-El token debe enviarse en el header:Authorization: Bearer <tu_token>
-🧪 Ejemplo de token JWT
-{
-  "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
-}
-🖥️ Interfaz web
-La app incluye una interfaz gráfica construida con HTML/CSS/JS que permite:
-
-Ver todas las bandas registradas.
-
 Editar o eliminar bandas existentes.
 
 Agregar nuevos instrumentos.
