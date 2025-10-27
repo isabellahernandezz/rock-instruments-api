@@ -34,10 +34,7 @@ python -m venv venv
 source venv/bin/activate  # En Windows: venv\Scripts\activate
 3. 📦 Instala las dependencias:
 pip install -r requirements.txt
-4. 🔐 Configura las variables de entorno: Crea un archivo .env en la raíz con:
-FLASK_ENV=development
-SECRET_KEY=tu_clave_secreta
-JWT_SECRET_KEY=tu_clave_jwt
+4. 🔐 Configura las variables de entorno
 5. 🚀 Corre la app en modo desarrollo:
 flask run
 📡 Uso de la API
